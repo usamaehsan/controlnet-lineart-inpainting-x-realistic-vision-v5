@@ -13,6 +13,8 @@ build:
     - "transformers==4.30.2"
     - "accelerate==0.20.3"
     - "omegaconf"
+    - "controlnet_aux==0.0.3"
+    - "compel"
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"

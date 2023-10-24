@@ -1,5 +1,5 @@
 from cog import BasePredictor, Input, Path
-from diffusers import StableDiffusionControlNetInpaintPipeline, ControlNetModel, DDIMScheduler, AutoencoderKL
+from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, DDIMScheduler, AutoencoderKL
 from diffusers.utils import load_image
 import numpy as np
 import torch
@@ -20,15 +20,15 @@ class Predictor(BasePredictor):
         #     cache_dir=VAE_CACHE
         # )
         #inpaint controlnet
-        controlnet = ControlNetModel.from_pretrained(
-            "lllyasviel/control_v11p_sd15_inpaint", torch_dtype=torch.float16
-        )
+        # controlnet = ControlNetModel.from_pretrained(
+        #     "lllyasviel/control_v11p_sd15_inpaint", torch_dtype=torch.float16
+        # )
         lineart_controlnet = ControlNetModel.from_pretrained("ControlNet-1-1-preview/control_v11p_sd15_lineart", torch_dtype=torch.float16)
         self.lineart_processor = LineartDetector.from_pretrained("lllyasviel/Annotators")
 
-        controlnets= [controlnet, lineart_controlnet]
+        controlnets= [lineart_controlnet]
 
-        pipe = StableDiffusionControlNetInpaintPipeline.from_pretrained(
+        pipe = StableDiffusionControlNetPipeline.from_pretrained(
             "SG161222/Realistic_Vision_V5.0_noVAE", controlnet=controlnets, torch_dtype=torch.float16,
             # vae=vae,
         )
@@ -93,7 +93,7 @@ class Predictor(BasePredictor):
         self,
         image: Path = Input(description="Input image"),
         prompt: str = "(a tabby cat)+++, high resolution, sitting on a park bench",
-        mask: Path = Input(description="Mask image"),
+        # mask: Path = Input(description="Mask image"),
         negative_prompt: str = "(deformed iris, deformed pupils, semi-realistic, cgi, 3d, render, sketch, cartoon, drawing, anime:1.4), text, close up, cropped, out of frame, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, dehydrated, bad anatomy, bad proportions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck",
         strength: float = Input(description="control strength/weight", ge=0, le=2, default=0.8),
         max_height: float = Input(description="max height of mask/image", ge=128, default=612),
@@ -113,12 +113,12 @@ class Predictor(BasePredictor):
         width, height = init_image.size
         width,height= self.closest_multiple_of_8( width, height)
         init_image= init_image.resize((width,height))
-        mask_image = Image.open(mask).convert("L").resize((width,height))
-        inpainting_control_image = self.make_inpaint_condition(init_image, mask_image)
+        # mask_image = Image.open(mask).convert("L").resize((width,height))
+        # inpainting_control_image = self.make_inpaint_condition(init_image, mask_image)
         lineart_control_image = self.lineart_processor(init_image)
         lineart_control_image= lineart_control_image.resize((width,height))
         
-        images= [inpainting_control_image, lineart_control_image]
+        images= [lineart_control_image]
         
         image = self.pipe(
             prompt_embeds=self.compel_proc(prompt),
@@ -126,9 +126,9 @@ class Predictor(BasePredictor):
             num_inference_steps=steps,
             generator=generator,
             eta=1,
-            image=init_image,
-            mask_image=mask_image,
-            control_image=images,
+            image=images,
+            # mask_image=mask_image,
+            # control_image=images,
             controlnet_conditioning_scale= strength,
             guidance_scale= guidance_scale
         ).images[0]
