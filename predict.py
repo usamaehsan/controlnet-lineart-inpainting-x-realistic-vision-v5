@@ -108,7 +108,7 @@ class Predictor(BasePredictor):
         generator = torch.Generator('cuda').manual_seed(seed)
         print("Using seed:", seed)
 
-        init_image = Image.open(image).convert("RGB")
+        init_image = Image.open(image)
         init_image = self.resize_image(init_image, max_width, max_height)
         width, height = init_image.size
         width,height= self.closest_multiple_of_8( width, height)
